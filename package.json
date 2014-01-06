@@ -1,0 +1,7 @@
+{
+	"name": "postgres-gen",
+	"version": "0.0.1",
+	"dependencies": {
+		"when": "2.7.x"
+	}
+}
