@@ -48,3 +48,39 @@ Starting with 0.1.0, postgres-gen supports querying with named parameters in add
 ```javascript
 pg.query('select * from arsenal where type = $type and yield > $kilotons;', { type: 'nuclear', kilotons: 2000 });
 ```
+
+## 4. Transactional domains
+
+Starting with 0.2.0 postgres-gen supports using domains as transactional containers. Further queries down the asynchronous 'call stack' will participate in an upstream transaction if there is one available. There is also a new method that allows you to create a separate transaction context while one is already available.
+
+```javascript
+function oob() {
+  // if called from somewhere within a transaction block (and for the love of Pete, yield), I will merrily participate in your transaction
+  return pg.nonQuery('delete from arsenal;');
+}
+
+pg.transaction(function*() { // we're deliberately ignoring the transaction that is passed in
+  var friends = yield pg.query('select * from nations where wantToDisarm = $friends;', { friends: true }).then(function(rs) { return rs.rowCount; });
+  if (friends > 10) yield oob();
+  throw new Error('Actually, we have changed our minds. Screw you guys, we\'re taking our nukes and going home (to lob them at you later).');
+});
+```
+
+Whether or not you have friendly nations, you will get to keep your arsenal.
+
+```javascript
+function oob() {
+  return pg.newTransaction(function*() {
+    yield pg.nonQuery('delete from arsenal;');
+  });
+});
+
+pg.transaction(function*() {
+  yield pg.query("select 'MAD is mad' as dogma;");
+  yield oob();
+  yield pg.query('select $message as regret;', { message: 'wait, I\'ve changed my mind!' });
+  throw new Error('You can try to back out, but it\'s too late!');
+});
+```
+
+Further ```transaction``` calls from within a transactional domain will also use the existing transaction. ```newTransaction``` must be called if you don't want to participate in any transaction that may already be ongoing. This can be used to create convenience DAOs for insert, update, etc that can be executed transactionally without requiring special parameter processing to pass the transaction.
