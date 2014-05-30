@@ -40,3 +40,11 @@ pg.transaction(function*(t) {
 ```
 
 It's important to note that any queries that are not yielded will be run in sequence due to the way the pg driver query queue works, but they will not cause the transaction to fail properly if there are any errors, as the transaction runner will have no knowledge of them. Any subsequent queries will cause the transaction to fully abort, since the server-side transaction will be failed. Having the last query in the transaction not participate in the transaction would have unfortunate consequences. Always yield!
+
+## 3. Named parameters
+
+Starting with 0.1.0, postgres-gen supports querying with named parameters in addition to positional parameters. If a parameters object is passed instead of a parameters array, the sql string may contain object keys as parameters. The named parameters will be converted to positional parameters before the query is passed on the the pg driver.
+
+```javascript
+pg.query('select * from arsenal where type = $type and yield > $kilotons;', { type: 'nuclear', kilotons: 2000 });
+```

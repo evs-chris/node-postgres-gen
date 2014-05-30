@@ -60,6 +60,17 @@ DB = (function() {
       con = _connect();
     }
 
+    // if a map is passed instead of an array, used named params
+    if (!!params && !Array.isArray(params)) {
+      var idx = 1, arr = [];
+      query = query.replace(/(\$[-a-zA-Z0-9_]*)/g, function(m) {
+        arr.push(params[m.slice(1)]);
+        return '$' + idx++;
+      });
+      params = arr;
+      if (idx - 1 != params.length) return when.reject("Parameter count doesn't match parameters in statement.");
+    }
+
     return con.then(function(c) {
       var start = Date.now();
 
