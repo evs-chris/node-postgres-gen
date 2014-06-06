@@ -1,0 +1,12 @@
+{
+  "esnext": true,
+  "unused": true,
+  "predef": [
+    "console",
+    "module",
+    "__dirname",
+    "__filename",
+    "require",
+    "process"
+  ]
+}

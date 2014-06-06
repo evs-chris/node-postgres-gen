@@ -180,8 +180,10 @@ DB = (function() {
     var next, abort;
     abort = function(e) {
       // rollback if this is the top-level transaction
-      if (trans.init) {
+      if (ctx.init) {
         trans.rollback().then(function() {
+          // closing the transaction, so drop the current trans context
+          if (!!domain.active) domain.active.__pggenContext = undefined;
           deferred.reject(e);
         });
       } else deferred.reject(e);
@@ -189,7 +191,11 @@ DB = (function() {
     next = function(res) {
       if (res.done) {
         if (ctx.init) {
-          trans.commit().then(function() { deferred.resolve(res.value); });
+          trans.commit().then(function() {
+            // closing the transaction, so drop the current trans context
+            if (!!domain.active) domain.active.__pggenContext = undefined;
+            deferred.resolve(res.value);
+          });
         } else deferred.resolve(res.value);
       } else if (res.value && typeof res.value.then === 'function') {
         res.value.then(function(r) {
@@ -282,6 +288,9 @@ DB = (function() {
         return this.query('commit;').then(function() {
           t.successful = true;
           return t.close();
+        }, function(err) {
+          t.successful = false;
+          return t.close().then(function() { throw err; });
         });
       }
     };
@@ -294,6 +303,9 @@ DB = (function() {
         return this.query('rollback;').then(function() {
           t.successful = false;
           return t.close();
+        }, function(err) {
+          t.successful = false;
+          return t.close().then(function() { throw err; });
         });
       }
     };
