@@ -357,6 +357,7 @@ DB = (function() {
   prototype.log = function(fn) {
     if (!!fn && typeof fn === 'function') _logFn = fn;
   };
+  prototype.connectionString = function() { return _conStr; };
 
   function DB(con) {
     if (!!!con) throw new Error("You must supply a connection configuration.");
