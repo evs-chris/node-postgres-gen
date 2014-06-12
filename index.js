@@ -29,6 +29,49 @@ var nextId = (function() {
   };
 })();
 
+var normalize = module.exports.normalizeQueryArguments = function(args) {
+  if (args.length === 1 && args[0].hasOwnProperty('sql')) return args;
+
+  var q = args[0];
+  var params = [];
+  var options = {};
+  var questions = q.indexOf('?') >= 0;
+  var dollarNums = !questions && (q.match(/\$[0-9]+/g) || []).length > 0;
+  var i;
+
+  if (args.length > 1) {
+    if (questions || dollarNums) {
+      // these require weird param arguments handling
+      var paramCount = questions ? (q.match(/\?/g) || []).length : (q.match(/\$[a-zA-Z]/g) || []).length;
+      if (Array.isArray(args[1])) params = args[1];
+      else {
+        for (i = 1; i <= paramCount; i++) params.push(args[i]);
+      }
+
+      if (questions) {
+        i = 1;
+        q = q.replace(/\?/g, function(m) { return '$' + i; });
+      }
+
+      if (args.length > params.length + 1) options = args[args.length - 1];
+    } else {
+      // dollarNames requires conversion to dollarNumbers
+      var ps = args[1];
+      var idx = 1, arr = [];
+      q = q.replace(/(\$[-a-zA-Z0-9_]*)/g, function(m) {
+        arr.push(ps[m.slice(1)]);
+        return '$' + idx++;
+      });
+      params = arr;
+
+      if (args.length > 2) options = args[args.length - 1];
+    }
+  }
+
+  var res = { query: q, params: params, options: options };
+  return res;
+};
+
 // it would be nice to be able to stream result sets by returning a generator
 // need a way to inject mocks for testing
 
@@ -60,7 +103,7 @@ DB = (function() {
     }
   };
 
-  _query = function(connection, query, params) {
+  _query = function(connection, obj) {
     var con, p, cleanup = false;
     if (!!connection) {
       p = when.defer();
@@ -73,28 +116,17 @@ DB = (function() {
       con = domain.active.__pggenContext.trans.begin();
     }
 
-    // if a map is passed instead of an array, used named params
-    if (!!params && !Array.isArray(params)) {
-      var idx = 1, arr = [];
-      query = query.replace(/(\$[-a-zA-Z0-9_]*)/g, function(m) {
-        arr.push(params[m.slice(1)]);
-        return '$' + idx++;
-      });
-      params = arr;
-      if (idx - 1 != params.length) return when.reject("Parameter count doesn't match parameters in statement.");
-    }
-
     return con.then(function(c) {
       var start = Date.now();
 
       var deferred = when.defer();
-      c[0].query(query, params, function(err, res) {
+      c[0].query(obj.query, obj.params, function(err, res) {
         var time = Date.now() - start;
 
         try {
-          if (_logFn !== null) _logFn({ name: _name, query: query, params: params, string: _conStr, time: time, error: err });
-          else if (__logFn !== null) __logFn({ name: _name, query: query, params: params, string: _conStr, time: time, error: err });
-        } catch (e) {}
+          var log = _logFn || __logFn;
+          if (log !== null) log({ name: _name, query: obj.query, params: obj.params, string: _conStr, time: time, error: err });
+        } catch (e) { console.log(e); }
 
         if (err) deferred.reject(err);
         else deferred.resolve(res);
@@ -107,14 +139,14 @@ DB = (function() {
     });
   };
 
-  _nonQuery = function(connection, query, params) {
-    return _query(connection, query, params).then(function(res) {
+  _nonQuery = function(connection, obj) {
+    return _query(connection, obj).then(function(res) {
       return res.rowCount;
     });
   };
 
-  _queryOne = function(connection, query, params) {
-    return _query(connection, query, params).then(function(res) {
+  _queryOne = function(connection, obj) {
+    return _query(connection, obj).then(function(res) {
       if (res.rows.length > 0) {
         return res.rows[0];
       } else {
@@ -311,21 +343,21 @@ DB = (function() {
     };
 
     prototype.query = function(query, params) {
-      var t = this;
-      if (!this.active) return this.begin().then(function() { return t.query(query, params); });
-      else return _query(this.connection, query, params);
+      var t = this, args = normalize(arguments);
+      if (!this.active) return this.begin().then(function() { return _query(t.connection, args); });
+      else return _query(this.connection, args);
     };
 
     prototype.queryOne = function(query, params) {
-      var t = this;
-      if (!this.active) return this.begin().then(function() { return t.queryOne(query, params); });
-      else return _queryOne(this.connection, query, params);
+      var t = this, args = normalize(arguments);
+      if (!this.active) return this.begin().then(function() { return _queryOne(t.connection, args); });
+      else return _queryOne(this.connection, args);
     };
 
     prototype.nonQuery = function(query, params) {
-      var t = this;
-      if (!this.active) return this.begin().then(function() { return t.nonQuery(query, params); });
-      else return _nonQuery(this.connection, query, params);
+      var t = this, args = normalize(arguments);
+      if (!this.active) return this.begin().then(function() { return _nonQuery(t.connection, args); });
+      else return _nonQuery(this.connection, args);
     };
 
     prototype.active = false;
@@ -346,13 +378,13 @@ DB = (function() {
     else return undefined;
   };
   prototype.query = function(query, params) {
-    return _query(null, query, params);
+    return _query(null, normalize(arguments));
   };
   prototype.queryOne = function(query, params) {
-    return _queryOne(null, query, params);
+    return _queryOne(null, normalize(arguments));
   };
   prototype.nonQuery = function(query, params) {
-    return _nonQuery(null, query, params);
+    return _nonQuery(null, normalize(arguments));
   };
   prototype.log = function(fn) {
     if (!!fn && typeof fn === 'function') _logFn = fn;
