@@ -1,3 +1,7 @@
+## 0.3.1
+
+* __BUG:__ fixes error on passing pre-normalized query though normalize again.
+
 ## 0.3.0
 
 * Adds support for ? parameters in addition to $# and $name parameters.
