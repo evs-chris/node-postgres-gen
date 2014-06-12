@@ -30,7 +30,7 @@ var nextId = (function() {
 })();
 
 var normalize = module.exports.normalizeQueryArguments = function(args) {
-  if (args.length === 1 && args[0].hasOwnProperty('sql')) return args;
+  if (args.length === 1 && args[0].hasOwnProperty('query') && args[0].hasOwnProperty('params')) return args[0];
 
   var q = args[0];
   var params = [];

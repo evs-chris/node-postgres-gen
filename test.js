@@ -70,4 +70,11 @@ describe('Query strings', function() {
       (function() { return norm(arguments); })('select $foo', { foo: 1 }, obj).options.should.equal(obj);
     });
   });
+
+  describe('passed as pre-normalized objects', function() {
+    it('should be returned unharmed', function() {
+      var q = { query: 'select 1', params: [] };
+      (function() { return norm(arguments); })(q).should.equal(q);
+    });
+  });
 });
