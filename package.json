@@ -1,6 +1,6 @@
 {
   "name": "postgres-gen",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "A wrapper for pg or pg.js that runs queries and transactions through a generator using promises.",
   "homepage": "https://github.com/evs-chris/node-postgres-gen",
   "license": "MIT",
@@ -11,13 +11,11 @@
     "engines": {
       "node": ">=0.11.0"
     },
-    "dependencies": {
-      "when": "2.7.x"
-    },
     "devDependencies": {
       "pg.js": "^3",
       "mocha": "^1",
-      "should": "^4"
+      "should": "^4",
+      "when": "^3"
     },
     "scripts": {
       "test": "node_modules/.bin/mocha --harmony --reporter spec test.js"

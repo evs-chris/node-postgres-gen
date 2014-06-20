@@ -1,5 +1,7 @@
 # postgres-gen
 
+postgres-gen expects there to be a reasonable ES6 promise implementation available. It looks like the one available in node as of 0.11.13 does not work nicely with domains, so one should be provided. when.js is currently used in the test script, but any other implementation should work.
+
 postgres-gen is a wrapper for pg or pg.js that facilitates the running PostgreSQL queries or transactions inside a generator using promises. There are two scenarios in which this is particularly useful.
 
 ## 1. Using yield to execute a query or transaction inside another generator
