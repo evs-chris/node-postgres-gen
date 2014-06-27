@@ -1,7 +1,11 @@
+## 0.4.1
+
+* __BUG:__ Fixes null bug related to hasCurrent and currentVal for domain transactions.
+
 ## 0.4.0
 
 * __BUG:__ different database/server/user combos can now be handled concurrently after rewriting to use stacked prototypes where possible
-* Epands the test suite to verify common transactional handling cases
+* Expands the test suite to verify common transactional handling cases
 * Drops the hard dependency on when and switches to ES6 promises
 
 ## 0.3.1
