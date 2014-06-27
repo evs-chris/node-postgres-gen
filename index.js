@@ -139,7 +139,7 @@ root = {
     });
   },
   _hasCurrent: function() {
-    return root._currentVal.call(this) !== undefined;
+    return !!root._currentVal.call(this);
   },
   _currentVal: function() {
     var res = domain.active;
