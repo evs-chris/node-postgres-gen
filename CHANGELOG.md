@@ -1,3 +1,7 @@
+## 0.4.2
+
+* __BUG:__ Fixes normalization of queries without parameters not carrying over their options if supplied.
+
 ## 0.4.1
 
 * __BUG:__ Fixes null bug related to hasCurrent and currentVal for domain transactions.
