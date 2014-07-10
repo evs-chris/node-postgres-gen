@@ -35,7 +35,8 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
   var params = [];
   var options = {};
   var questions = q.indexOf('?') >= 0;
-  var dollarNums = !questions && (q.match(/\$[0-9]+/g) || []).length > 0;
+  var dollarNums = !questions && /\$[0-9]+/g.test(q);
+  var dollarNames = !questions && !dollarNums && /\$[-a-zA-Z0-9_]+/g.test(q);
   var i;
 
   if (args.length > 1) {
@@ -53,7 +54,7 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
       }
 
       if (args.length > params.length + 1) options = args[args.length - 1];
-    } else {
+    } else if (dollarNames) {
       // dollarNames requires conversion to dollarNumbers
       var ps = args[1];
       var idx = 1, arr = [];
@@ -64,6 +65,8 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
       params = arr;
 
       if (args.length > 2) options = args[args.length - 1];
+    } else {
+      options = args[args.length - 1];
     }
   }
 
