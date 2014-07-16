@@ -43,17 +43,20 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
     if (questions || dollarNums) {
       // these require weird param arguments handling
       var paramCount = questions ? (q.match(/\?/g) || []).length : (q.match(/\$[a-zA-Z]/g) || []).length;
-      if (Array.isArray(args[1])) params = args[1];
-      else {
+      var argLen = args.length;
+      if (Array.isArray(args[1])) {
+        params = args[1];
+        argLen = params.length + args.length - 1;
+      } else {
         for (i = 1; i <= paramCount; i++) params.push(args[i]);
       }
 
       if (questions) {
         i = 1;
-        q = q.replace(/\?/g, function() { return '$' + i; });
+        q = q.replace(/\?/g, function() { return '$' + i++; });
       }
 
-      if (args.length > params.length + 1) options = args[args.length - 1];
+      if (argLen > params.length + 1) options = args[args.length - 1];
     } else if (dollarNames) {
       // dollarNames requires conversion to dollarNumbers
       var ps = args[1];

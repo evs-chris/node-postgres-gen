@@ -103,18 +103,18 @@ describe('Transactions', function() {
 describe('Query strings', function() {
   describe('containing ? params', function() {
     it('should convert to $# params', function() {
-      (function() { return norm(arguments); })('select ?', 1).query.should.equal('select $1');
+      (function() { return norm(arguments); })('select ?, ?', 1).query.should.equal('select $1, $2');
     });
     it('should handle a params array', function() {
-      (function() { return norm(arguments); })('select ?', [1]).params.should.eql([1]);
+      (function() { return norm(arguments); })('select ?, ?', [1, 2]).params.should.eql([1, 2]);
     });
     it('should handle a params varargs', function() {
-      (function() { return norm(arguments); })('select ?', 1).params.should.eql([1]);
+      (function() { return norm(arguments); })('select ?, ?', 1, 2).params.should.eql([1, 2]);
     });
     it('should allow an options object to appear at the end', function() {
       var obj = { 'foo': 1 };
-      (function() { return norm(arguments); })('select ?', 1, obj).options.should.equal(obj);
-      (function() { return norm(arguments); })('select ?', [1], obj).options.should.equal(obj);
+      (function() { return norm(arguments); })('select ?, ?', 1, 2, obj).options.should.equal(obj);
+      (function() { return norm(arguments); })('select ?, ?', [1, 2], obj).options.should.equal(obj);
     });
   });
 
