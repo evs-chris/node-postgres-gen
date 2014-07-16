@@ -1,3 +1,7 @@
+## 0.4.3
+
+* __BUG:__ Fixes normalization of queries with ? params not referencing any params beyond the first.
+
 ## 0.4.2
 
 * __BUG:__ Fixes normalization of queries without parameters not carrying over their options if supplied.
