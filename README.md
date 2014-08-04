@@ -2,7 +2,7 @@
 
 postgres-gen expects there to be a reasonable ES6 promise implementation available. It looks like the one available in node as of 0.11.13 does not work nicely with domains, so one should be provided. when.js is currently used in the test script, but any other implementation should work.
 
-postgres-gen is a wrapper for pg or pg.js that facilitates the running PostgreSQL queries or transactions inside a generator using promises. There are two scenarios in which this is particularly useful.
+postgres-gen is a wrapper for pg or pg.js that facilitates the running PostgreSQL queries or transactions inside a generator using promises. There are a few scenarios in which this wrapper is particularly useful.
 
 ## 1. Using yield to execute a query or transaction inside another generator
 
@@ -51,7 +51,31 @@ Starting with 0.1.0, postgres-gen supports querying with named parameters in add
 pg.query('select * from arsenal where type = $type and yield > $kilotons;', { type: 'nuclear', kilotons: 2000 });
 ```
 
-## 4. Transactional domains
+## 4. ? parameters
+
+node-postgres requires positional parameters to be numbered with $s. Sometimes it's more convenient to have a simple ? in a query than numbering each one.
+
+```javascript
+pg.query('select count(*) from agency_complaints where initials = ?;', 'IRS');
+```
+
+## 5. Javascript arrays as parameters
+
+postgres-gen query normalization will also recognize a javascript array parameter and turn it into a sql array with the same members within a query. The only place this will fall over is where an array is stored in a json column, which should be pretty rare, but can be worked around by JSON.stringify-ing the array before sending it as a parameter.
+
+```javascript
+pg.query('select * from cars where classification in ? and id > ?;', [['awesome', 'classic', 'really super fast'], 10]);
+```
+
+Results in:
+
+```sql
+select * from cars where classification in ($1, $3, $4) and id > $2;
+```
+
+Notice that array parameter is replaced with its first element with additional elements added to the end of the param references, so that this also works nicely with named and number parameters.
+
+## 6. Transactional domains
 
 Starting with 0.2.0 postgres-gen supports using domains as transactional containers. Further queries down the asynchronous 'call stack' will participate in an upstream transaction if there is one available. There is also a new method that allows you to create a separate transaction context while one is already available.
 

@@ -1,3 +1,7 @@
+## 0.5.0
+
+* Adds support for javascript arrays in queries by splitting them out in to sql arrays in the query and adjusting the params array to include the members of the parameter.
+
 ## 0.4.3
 
 * __BUG:__ Fixes normalization of queries with ? params not referencing any params beyond the first.
