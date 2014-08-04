@@ -72,6 +72,18 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
       options = args[args.length - 1];
     }
   }
+  
+  // find any array parameters and replace them and their reference with their contents
+  for (i = 0; i < params.length; i++) {
+    var p = params[i];
+    if (Array.isArray(p)) {
+      var arargs = ['$' + (i + 1)];
+      for (var j = 1; j < p.length; j++) arargs.push('$' + (j + params.length));
+      q = q.replace('$' + (i + 1), '(' + arargs.join(', ') + ')');
+      params.splice(i, 1, p[0]);
+      params = params.concat(p.slice(1));
+    }
+  }
 
   var res = { query: q, params: params, options: options };
   return res;
