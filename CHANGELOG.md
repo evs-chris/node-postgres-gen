@@ -1,3 +1,7 @@
+## 0.6.0
+
+* Adds support for substituting array parameters for an array constructor (`ARRRAY[]`) if there is a flag set on the array (`literalArray`)
+
 ## 0.5.0
 
 * Adds support for javascript arrays in queries by splitting them out in to sql arrays in the query and adjusting the params array to include the members of the parameter.
