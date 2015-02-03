@@ -110,3 +110,11 @@ pg.transaction(function*() {
 ```
 
 Further ```transaction``` calls from within a transactional domain will also use the existing transaction. ```newTransaction``` must be called if you don't want to participate in any transaction that may already be ongoing. This can be used to create convenience DAOs for insert, update, etc that can be executed transactionally without requiring special parameter processing to pass the transaction.
+
+## 7. Closing connections
+```javascript
+var pg = require('postgres-gen');
+var client = pg('connection string or config object here');
+var results = yield client.query('select something from sometable');
+client.end();
+```
