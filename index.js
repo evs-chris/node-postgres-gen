@@ -104,12 +104,18 @@ root = {
         var client = new pg.Client(me.conStr);
         client.connect(function(err) {
           if (err) reject(err);
-          else resolve([client]);
+          else {
+            me.end = function(){client.end.call(client)}
+            resolve([client]);
+          }
         });
       } else {
         pg.connect(me.conStr, function(err, client, done) {
           if (err) reject(err);
-          else resolve([client, done]);
+          else {
+            me.end = function(){client.end.call(client)}
+            resolve([client, done]);
+          }
         });
       }
     });
