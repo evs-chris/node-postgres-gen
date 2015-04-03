@@ -1,3 +1,7 @@
+## 0.6.1
+
+* __BUG?:__ Use the transaction connection, if available, when querying. This mostly kicks in when domains fall over.
+
 ## 0.6.0
 
 * Adds support for substituting array parameters for an array constructor (`ARRRAY[]`) if there is a flag set on the array (`literalArray`)
