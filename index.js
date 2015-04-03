@@ -119,6 +119,8 @@ root = {
     var con, cleanup = false;
     if (!!connection) {
       con = Promise.resolve([connection]);
+    } else if (!!me.connection) {
+      con = Promise.resolve([me.connection]);
     } else if (!root._hasCurrent.call(me)) {
       con = root._connect.call(me);
       cleanup = true;
@@ -249,7 +251,7 @@ root = {
             // closing the transaction, so drop the current trans context
             root._killCurrent.call(me);
             deferred.resolve(res.value);
-          });
+          }, abort);
         } else deferred.resolve(res.value);
       } else if (res.value && typeof res.value.then === 'function') {
         res.value.then(function(r) {
@@ -392,7 +394,7 @@ makeDB = (function() {
     var res = Object.create(mid);
 
     mid.newTrans = function newTrans() {
-      var trans = Object.create(tproto); 
+      var trans = Object.create(tproto);
       trans.conStr = mid.conStr;
       for (var k in res) trans[k] = res[k];
       trans.id = nextId();
