@@ -110,3 +110,19 @@ pg.transaction(function*() {
 ```
 
 Further ```transaction``` calls from within a transactional domain will also use the existing transaction. ```newTransaction``` must be called if you don't want to participate in any transaction that may already be ongoing. This can be used to create convenience DAOs for insert, update, etc that can be executed transactionally without requiring special parameter processing to pass the transaction.
+
+## 7. Tagged template SQL
+
+If you happen to be on an ES6 platform (or using a transpiler), you can use any query methods as tagged template handlers. Any interpolations will be turned into SQL parameters, unless they're a special literal, in which case they are inserted into the query string just like a non-tagged template.
+
+```js
+// in co or koa or some handy generator flow-control context
+let name = 'foo', table = 'bar', age = 22;
+let people = (yield pg.query`select * from ${pg.literal(table)} where name = ${name} and age > ${age}).rows;
+```
+
+In this example, the query is turned into:
+```sql
+select * from bar where name = $1 and age > $2
+```
+and the record array is assigned to the people variable.

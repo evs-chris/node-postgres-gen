@@ -1,3 +1,7 @@
+## 0.7.0
+
+* Adds support for using query methods as template tags.
+
 ## 0.6.1
 
 * __BUG?:__ Use the transaction connection, if available, when querying. This mostly kicks in when domains fall over.
