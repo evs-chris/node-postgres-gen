@@ -28,16 +28,53 @@ var nextId = (function() {
   };
 })();
 
+function LiteralPart(p) { this.part = p; }
+function literal(p) {
+  return new LiteralPart(p);
+}
+module.exports.literal = module.exports.lit = literal;
+
 var normalize = module.exports.normalizeQueryArguments = function(args) {
   if (args.length === 1 && args[0].hasOwnProperty('query') && args[0].hasOwnProperty('params')) return args[0];
 
-  var q = args[0];
-  var params = [];
-  var options = {};
-  var questions = q.indexOf('?') >= 0;
+  //watch out for arguments passed straight in
+  if (args && !Array.isArray(args) && typeof args !== 'string' && typeof args.length === 'number') args = Array.prototype.slice.call(args, 0);
+
+  var q, questions, params, options, i, count = 0, tmp;
+  // tagged string template
+  if (Array.isArray(args[0]) && Array.isArray(args[0].raw)) {
+    q = Array.prototype.slice.call(args[0], 0);
+    questions = true;
+    params = Array.prototype.slice.call(args, 1);
+    tmp = [];
+    params.forEach(function(p, i) {
+      // support literal interpolation too
+      if (p instanceof LiteralPart) {
+        if (Array.isArray(p.part)) {
+          tmp.push(p.part);
+          p.part.literalArray = true;
+        } else {
+          q[i - count] += p.part + q[(i - count) + 1];
+          q.splice((i - count) + 1, 1);
+          count++;
+        }
+      } else tmp.push(p);
+    });
+    params = tmp;
+    q = q.join('?');
+    args = '';
+    i = 1;
+    q = q.replace(/\?/g, function() { return '$' + i++; });
+    options = {};
+  } else {
+    q = args[0];
+    params = [];
+    questions = q.indexOf('?') >= 0;
+    options = {};
+  }
+
   var dollarNums = !questions && /\$[0-9]+/g.test(q);
   var dollarNames = !questions && !dollarNums && /\$[-a-zA-Z0-9_]+/g.test(q);
-  var i;
 
   if (args.length > 1) {
     if (questions || dollarNums) {
@@ -422,6 +459,8 @@ makeDB = (function() {
       if (!!arg.log && typeof arg.log === 'function') res.logFn = arg.log;
       if (!!arg.name && typeof arg.name === 'string') res.name = arg.name;
     }
+
+    res.literal = res.lit = literal;
 
     return res;
   };

@@ -171,3 +171,35 @@ describe('Multiple connections', function() {
     pg.connectionString().should.not.eql(pg2.connectionString());
   });
 });
+
+describe('Query methods should be usable as template tags', function() {
+  function n() { return norm(arguments); }
+  var pg = mod(con1);
+
+  it('with plain normalization', function() {
+    var bar = 'baz';
+    var q = n`select foo from bar where baz = ${bar}`;
+    q.params.length.should.equal(1);
+    q.query.should.equal('select foo from bar where baz = $1');
+    q.params[0].should.equal(bar);
+  });
+
+  it('with query', function(done) {
+    var foo = 'test';
+    pg.query`select ${foo}::varchar as foo`.then(function(r) { r.rows[0].foo.should.equal(foo); }).then(done, done);
+  });
+
+  it('with queryOne', function(done) {
+    var foo = 'test';
+    pg.queryOne`select ${foo}::varchar as foo`.then(function(r) { r.foo.should.equal(foo); }).then(done, done);
+  });
+
+  it('and support literal interpolation too', function() {
+    var foo = 'test', bar = 'bippy';
+    var q = n`select * from ${pg.lit(foo)} where bar = ${bar} and baz = ${pg.lit('true')} and name = ${foo}`;
+    q.params.length.should.equal(2);
+    q.query.should.equal('select * from test where bar = $1 and baz = true and name = $2');
+    q.params[0].should.equal(bar);
+    q.params[1].should.equal(foo);
+  });
+});
