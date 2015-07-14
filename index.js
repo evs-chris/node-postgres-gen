@@ -14,7 +14,7 @@ var domain = require('domain');
 
 var __logFn = null, makeDB;
 
-module.exports = function PostgresGen(con) { return makeDB.call(null, con); };
+module.exports = function PostgresGen(con, opts) { return makeDB.call(null, con, opts); };
 module.exports.log = function log(fn) {
   if (!!fn && typeof fn === 'function') __logFn = fn;
 };
@@ -205,6 +205,7 @@ root = {
     return !!root._currentVal.call(this);
   },
   _currentVal: function() {
+    if (!this.domains) return;
     var res = domain.active;
     if (!!res) res = res.__pggenContext;
     if (!!res) res = res[this.connectionString()];
@@ -241,28 +242,42 @@ root = {
   },
   _transact: function(gen) {
     var me = this;
+    if (me.domains) {
     return new Promise(function(resolve, reject) {
       root._current.call(me, function(ctx) {
         root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, ctx);
       });
     });
+    } else {
+      return new Promise(function(resolve, reject) {
+        var trans = me.newTrans();
+        root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, { init: true, trans: me.newTrans() });
+      });
+    }
   },
   _newTransact: function(gen) {
-    var currentDomain = domain.create();
-    var ctx = currentDomain.__pggenContext = {};
-    ctx = ctx[this.connectionString()] = {};
     var me = this;
-    ctx.trans = this.newTrans();
 
-    return new Promise(function(resolve, reject) {
-      currentDomain.run(function() {
-        root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, {
-          domain: currentDomain,
-          trans: ctx.trans,
-          init: true
+    if (me.domains) {
+      var currentDomain = domain.create();
+      var ctx = currentDomain.__pggenContext = {};
+      ctx = ctx[this.connectionString()] = {};
+      ctx.trans = this.newTrans();
+
+      return new Promise(function(resolve, reject) {
+        currentDomain.run(function() {
+          root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, {
+            domain: currentDomain,
+            trans: ctx.trans,
+            init: true
+          });
         });
       });
-    });
+    } else {
+      return new Promise(function(resolve, reject) {
+        root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, { trans: me.newTrans(), init: true });
+      });
+    }
   },
   _transactMiddle: function(gen, deferred, ctx) { // TODO: fix me
     var trans = ctx.trans;
@@ -355,7 +370,7 @@ makeDB = (function() {
   tproto.begin = function() {
     var t = this;
     if (t.done) {
-      return Promise.reject("This transaction is already complete.");
+      return Promise.reject("Begin: This transaction is already complete.");
     } else if (!t.active) {
       return root._connect.call(t).then(function(c) {
         t.connection = c[0];
@@ -371,7 +386,7 @@ makeDB = (function() {
   tproto.commit = function() {
     var t = this;
     if (t.done) {
-      return Promise.reject("This transaction is already complete.");
+      return Promise.reject("Commit: This transaction is already complete.");
     } else if (!t.active && !t.done) {
       t.done = true;
       return Promise.resolve(true);
@@ -389,7 +404,7 @@ makeDB = (function() {
   tproto.rollback = function() {
     var t = this;
     if (!t.active || t.done) {
-      return Promise.reject("This transaction is already complete.");
+      return Promise.reject("Rollback: This transaction is already complete.");
     } else {
       return t.query('rollback;').then(function() {
         t.successful = false;
@@ -425,15 +440,16 @@ makeDB = (function() {
   tproto.successful = false;
   tproto.whenDone = null;
 
-  return function PostgresGen(arg) {
+  return function PostgresGen(arg, opts) {
     if (arg === undefined) throw new Error("You must supply a connection configuration.");
+    opts = opts || {};
     var mid = Object.create(proto);
     var res = Object.create(mid);
 
     mid.newTrans = function newTrans() {
       var trans = Object.create(tproto);
       trans.conStr = mid.conStr;
-      for (var k in res) trans[k] = res[k];
+      for (var k in res) if (res.hasOwnProperty(k)) trans[k] = res[k];
       trans.id = nextId();
       return trans;
     };
@@ -461,6 +477,7 @@ makeDB = (function() {
     }
 
     res.literal = res.lit = literal;
+    res.domains = opts.domains === undefined ? true : opts.domains;
 
     return res;
   };
