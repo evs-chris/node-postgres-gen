@@ -1,3 +1,8 @@
+## 0.7.1
+
+* __BUG:__ Fix setup of transaction objects so that they don't get their query methods overwritten with the generic db methods.
+* Add support for disabling domain.
+
 ## 0.7.0
 
 * Adds support for using query methods as template tags.
