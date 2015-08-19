@@ -177,7 +177,7 @@ root = {
             if (log !== null) log({ name: me.name, query: obj.query, params: obj.params, string: me.conStr, time: time, error: err });
           } catch (e) { console.log(e); }
 
-          if (err) reject(err);
+          if (err) { err.sql = obj.query; err.params = obj.params; reject(err); }
           else resolve(res);
           if (cleanup) {
             if (me.pool) c[1]();
@@ -250,7 +250,6 @@ root = {
     });
     } else {
       return new Promise(function(resolve, reject) {
-        var trans = me.newTrans();
         root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, { init: true, trans: me.newTrans() });
       });
     }
@@ -470,6 +469,7 @@ makeDB = (function() {
         else mid.conStr += 'localhost';
         if (!!arg.port) mid.conStr += ':' + arg.port;
         if (arg.db) mid.conStr += '/' + arg.db;
+        if (arg.hasOwnProperty('ssl')) mid.conStr += '?ssl=' + arg.ssl;
       }
       if (arg.hasOwnProperty('pool')) mid.pool = !!arg.pool;
       if (!!arg.log && typeof arg.log === 'function') res.logFn = arg.log;
