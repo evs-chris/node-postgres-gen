@@ -1,3 +1,8 @@
+## 0.7.2
+
+* Adds support for ssl as a connection param.
+* Adds failed query info to exceptions.
+
 ## 0.7.1
 
 * __BUG:__ Fix setup of transaction objects so that they don't get their query methods overwritten with the generic db methods.
