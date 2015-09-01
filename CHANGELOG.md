@@ -1,3 +1,7 @@
+## 0.7.3
+
+* __BUG:__ Fix nesting a transaction within a transaction so that the outer transaction is used.
+
 ## 0.7.2
 
 * Adds support for ssl as a connection param.
