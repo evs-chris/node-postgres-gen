@@ -25,6 +25,17 @@ function go(connect1, connect2, domain) {
         });
       }
 
+      it('should use the given transaction when supplied', function(done) {
+        var pg = connect1();
+        pg.transaction(function*(t1) {
+          yield t1.query('select 1;');
+          yield t1.transaction(function*(t2) {
+            yield t2.query('select 2');
+            t1.should.equal(t2);
+          });
+        }).then(done, done);
+      });
+
       it('should not share the same transaction instance when requested', function(done) {
         var pg = connect1();
         pg.transaction(function*(t1) {
