@@ -415,6 +415,13 @@ makeDB = (function() {
     }
   };
 
+  tproto.transaction = function(gen) {
+    var me = this;
+    return new Promise(function(resolve, reject) {
+      root._transactMiddle.call(me, gen, { resolve: resolve, reject: reject }, { init: false, trans: me });
+    });
+  };
+
   tproto.query = function() {
     var t = this, args = normalize(arguments);
     if (!t.active) return t.begin().then(function() { return root._query.call(t, t.connection, args); });
