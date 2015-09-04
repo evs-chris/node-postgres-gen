@@ -1,3 +1,7 @@
+## 0.8.1
+
+* __BUG:__ Fixes options getting set from last param in certain situations during normalization.
+
 ## 0.8.0
 
 * Adds support for `apply`-like calls during query normalization, meaning you can now pass all of your parameters in a single array. This allows convenient query building using an array to build up the statement and params as you check for options e.g.
