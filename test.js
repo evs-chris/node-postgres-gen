@@ -117,6 +117,48 @@ function go(connect1, connect2, domain) {
   });
 
   describe('Query strings', function() {
+    describe('with apply-like calls', function() {
+      var q = 'select $1, $2', opts = { foo: 1 }, nm = function() { return norm(arguments); };
+      it('should handle simple arrays', function() {
+        var res = nm([q, 1, 2, opts]);
+        res.query.should.equal(q);
+        res.params.should.eql([1, 2]);
+        res.options.foo.should.equal(1);
+      });
+
+      it('should handle blank query and opts', function() {
+        var res = nm(['', opts]);
+        res.query.should.equal('');
+        res.options.foo.should.equal(1);
+      });
+
+      it('opts only', function() {
+        var res = nm([opts]);
+        res.query.should.equal('');
+        res.options.foo.should.equal(1);
+      });
+
+      it('should handle params array w/ opts', function() {
+        var res = nm([q, [1, 2], opts]);
+        res.query.should.equal(q);
+        res.params.should.eql([1, 2]);
+        res.options.foo.should.equal(1);
+      });
+
+      it('should handle param array no opts', function() {
+        var res = nm([q, [1, 2]]);
+        res.query.should.equal(q);
+        res.params.should.eql([1, 2]);
+      });
+
+      it('should handle params array w/ internal opts', function() {
+        var res = nm([q, [1, 2, opts]]);
+        res.query.should.equal(q);
+        res.params.should.eql([1, 2]);
+        res.options.foo.should.equal(1);
+      });
+    });
+
     describe('containing ? params', function() {
       it('should convert to $# params', function() {
         (function() { return norm(arguments); })('select ?, ?', 1).query.should.equal('select $1, $2');

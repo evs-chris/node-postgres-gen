@@ -34,6 +34,7 @@ function literal(p) {
 }
 module.exports.literal = module.exports.lit = literal;
 
+var qRE = /\?/g, dnumRE = /\$[0-9]+/g, dnameRE = /\$[-a-zA-Z0-9_]+/g;
 var normalize = module.exports.normalizeQueryArguments = function(args) {
   if (args.length === 1 && args[0].hasOwnProperty('query') && args[0].hasOwnProperty('params')) return args[0];
 
@@ -64,41 +65,45 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
     q = q.join('?');
     args = '';
     i = 1;
-    q = q.replace(/\?/g, function() { return '$' + i++; });
+    q = q.replace(qRE, function() { return '$' + i++; });
     options = {};
   } else {
+    // check for apply-ish calls
+    if (args.length === 1 && Array.isArray(args[0])) args = args[0];
+    // allow for opt-arg only calls (useful for downstream libs)
+    if (typeof args[0] !== 'string') args.unshift('');
+
     q = args[0];
     params = [];
     questions = q.indexOf('?') >= 0;
     options = {};
   }
 
-  var dollarNums = !questions && /\$[0-9]+/g.test(q);
-  var dollarNames = !questions && !dollarNums && /\$[-a-zA-Z0-9_]+/g.test(q);
+  var dollarNums = !questions && dnumRE.test(q);
+  var dollarNames = !questions && !dollarNums && dnameRE.test(q);
 
   if (args.length > 1) {
     if (questions || dollarNums) {
       // these require weird param arguments handling
-      var paramCount = questions ? (q.match(/\?/g) || []).length : (q.match(/\$[a-zA-Z]/g) || []).length;
-      var argLen = args.length;
+      var paramCount = questions ? (q.match(qRE) || []).length : (q.match(dnumRE) || []).length;
       if (Array.isArray(args[1])) {
-        params = args[1];
-        argLen = params.length + args.length - 1;
+        params = args[1].slice(0, paramCount);
+        if (args.length > 2) options = args[args.length - 1];
+        else if (args[1].length > paramCount) options = args[1][args[1].length - 1];
       } else {
         for (i = 1; i <= paramCount; i++) params.push(args[i]);
+        if (args.length > 2) options = args[args.length - 1];
       }
 
       if (questions) {
         i = 1;
-        q = q.replace(/\?/g, function() { return '$' + i++; });
+        q = q.replace(qRE, function() { return '$' + i++; });
       }
-
-      if (argLen > params.length + 1) options = args[args.length - 1];
     } else if (dollarNames) {
       // dollarNames requires conversion to dollarNumbers
       var ps = args[1];
       var idx = 1, arr = [];
-      q = q.replace(/(\$[-a-zA-Z0-9_]*)/g, function(m) {
+      q = q.replace(dnameRE, function(m) {
         arr.push(ps[m.slice(1)]);
         return '$' + idx++;
       });
