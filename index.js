@@ -92,7 +92,7 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
         else if (args[1].length > paramCount) options = args[1][args[1].length - 1];
       } else {
         for (i = 1; i <= paramCount; i++) params.push(args[i]);
-        if (args.length > 2) options = args[args.length - 1];
+        if (args.length > paramCount + 1) options = args[args.length - 1];
       }
 
       if (questions) {

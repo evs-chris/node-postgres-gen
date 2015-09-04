@@ -8,6 +8,14 @@ var norm = mod.normalizeQueryArguments;
 
 function logger(s) { this.push(s); }
 
+function isEmpty(o) {
+  if (!o) return true;
+  for (var k in o) {
+    if (o.hasOwnProperty(k)) return false;
+  }
+  return true;
+}
+
 // --jshint, please skip should magic
 if (should) ;
 
@@ -119,11 +127,18 @@ function go(connect1, connect2, domain) {
   describe('Query strings', function() {
     describe('with apply-like calls', function() {
       var q = 'select $1, $2', opts = { foo: 1 }, nm = function() { return norm(arguments); };
-      it('should handle simple arrays', function() {
+      it('should handle simple arrays w/ opts', function() {
         var res = nm([q, 1, 2, opts]);
         res.query.should.equal(q);
         res.params.should.eql([1, 2]);
         res.options.foo.should.equal(1);
+      });
+
+      it('should handle simple arrays w/ no opts', function() {
+        var res = nm([q, 1, 2]);
+        res.query.should.equal(q);
+        res.params.should.eql([1, 2]);
+        should.ok(isEmpty(res.options));
       });
 
       it('should handle blank query and opts', function() {
@@ -132,10 +147,22 @@ function go(connect1, connect2, domain) {
         res.options.foo.should.equal(1);
       });
 
+      it('should handle blank query and no opts', function() {
+        var res = nm(['']);
+        res.query.should.equal('');
+        should.ok(isEmpty(res.options));
+      });
+
       it('opts only', function() {
         var res = nm([opts]);
         res.query.should.equal('');
         res.options.foo.should.equal(1);
+      });
+
+      it('copmletely empty', function() {
+        var res = nm([]);
+        res.query.should.equal('');
+        should.ok(isEmpty(res.options));
       });
 
       it('should handle params array w/ opts', function() {
@@ -149,6 +176,7 @@ function go(connect1, connect2, domain) {
         var res = nm([q, [1, 2]]);
         res.query.should.equal(q);
         res.params.should.eql([1, 2]);
+        should.ok(isEmpty(res.options));
       });
 
       it('should handle params array w/ internal opts', function() {
