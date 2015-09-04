@@ -5,20 +5,20 @@
 ## 0.8.0
 
 * Adds support for `apply`-like calls during query normalization, meaning you can now pass all of your parameters in a single array. This allows convenient query building using an array to build up the statement and params as you check for options e.g.
-  ```js
-  let q = ['select * from table'], join = ' where ';
-  if (someOption) {
-    q[0] += `${join}foo = ?`;
-    q.push(someOption);
-    join = ' and ';
-  }
-  if (otherOption) {
-    q[0] += `${join}bar = ?`;
-    q.push(otherOption);
-    join = ' and ';
-  }
-  db.query(q);
-  ```
+```js
+let q = ['select * from table'], join = ' where ';
+if (someOption) {
+  q[0] += `${join}foo = ?`;
+  q.push(someOption);
+  join = ' and ';
+}
+if (otherOption) {
+  q[0] += `${join}bar = ?`;
+  q.push(otherOption);
+  join = ' and ';
+}
+db.query(q);
+```
 
 ## 0.7.3
 
