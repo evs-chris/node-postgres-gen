@@ -1,3 +1,7 @@
+## 0.8.2
+
+* __BUG:__ Fixes handling of empty arrays for both set and literal treatment. If an empty array is passed in a non-literal context, it will be turned into `(select 1 from false)`, since PostgreSQL has no empty set literal (that I know of, corrections welcome). If the array is literal, it will end up as `ARRAY[]`. In both cases, the parameter will be spliced from the params array and any further numbered parameter references will be shifted down.
+
 ## 0.8.1
 
 * __BUG:__ Fixes options getting set from last param in certain situations during normalization.
