@@ -34,7 +34,7 @@ function literal(p) {
 }
 module.exports.literal = module.exports.lit = literal;
 
-var qRE = /\?/g, dnumRE = /\$[0-9]+/g, dnameRE = /\$[-a-zA-Z0-9_]+/g;
+var qRE = /\?/g, dnumRE = /\$([0-9]+)/g, dnameRE = /\$[-a-zA-Z0-9_]+/g;
 var normalize = module.exports.normalizeQueryArguments = function(args) {
   if (args.length === 1 && args[0].hasOwnProperty('query') && args[0].hasOwnProperty('params')) return args[0];
 
@@ -81,6 +81,7 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
 
   var dollarNums = !questions && dnumRE.test(q);
   var dollarNames = !questions && !dollarNums && dnameRE.test(q);
+  var shifts = [], idx;
 
   if (args.length > 1) {
     if (questions || dollarNums) {
@@ -101,8 +102,8 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
       }
     } else if (dollarNames) {
       // dollarNames requires conversion to dollarNumbers
-      var ps = args[1];
-      var idx = 1, arr = [];
+      var ps = args[1], arr = [];
+      idx = 1;
       q = q.replace(dnameRE, function(m) {
         arr.push(ps[m.slice(1)]);
         return '$' + idx++;
@@ -125,12 +126,32 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
       for (var j = 1; j < p.length; j++) arargs.push('$' + (j + params.length));
       if (p.literalArray) {
         q = q.replace('$' + (i + 1), 'ARRAY[' + arargs.join(', ') + ']');
+        if (p.length < 1) shifts.push(i + 1);
       } else {
-        q = q.replace('$' + (i + 1), '(' + arargs.join(', ') + ')');
+        if (p.length < 1) {
+          q = q.replace('$' + (i + 1), '(select 1 where false)');
+          shifts.push(i + 1);
+        } else {
+          q = q.replace('$' + (i + 1), '(' + arargs.join(', ') + ')');
+        }
       }
       params.splice(i, 1, p[0]);
       params = params.concat(p.slice(1));
     }
+  }
+
+  var fn = function(m, n) {
+    if (+n === idx) return '';
+    else if (+n > idx) return '$' + (+n - 1);
+    else return m;
+  };
+
+  for (i = 0; i < shifts.length; i++) {
+    idx = shifts[i];
+    q = q.replace(dnumRE, fn);
+  }
+  for (i = shifts.length - 1; i >= 0; i--) {
+    params.splice(shifts[i] - 1, 1);
   }
 
   var res = { query: q, params: params, options: options };
