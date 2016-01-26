@@ -24,6 +24,7 @@ module.exports.close = function() {
     pg.end();
   });
 };
+module.exports.pg = pg;
 
 var nextId = (function() {
   var id = 0;
