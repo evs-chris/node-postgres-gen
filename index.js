@@ -18,6 +18,12 @@ module.exports = function PostgresGen(con, opts) { return makeDB.call(null, con,
 module.exports.log = function log(fn) {
   if (!!fn && typeof fn === 'function') __logFn = fn;
 };
+module.exports.close = function() {
+  return new Promise(function(ok) {
+    pg.once('end', ok);
+    pg.end();
+  });
+};
 
 var nextId = (function() {
   var id = 0;
@@ -358,6 +364,7 @@ makeDB = (function() {
   proto.name = '';
   proto.logFn = null;
   proto.pool = true;
+  proto.pg = pg;
 
   proto.transaction = function(gen) { return root._transact.call(this, gen); };
   proto.newTransaction = function(gen) { return root._newTransact.call(this, gen); };
@@ -379,6 +386,19 @@ makeDB = (function() {
     if (!!fn && typeof fn === 'function') this.logFn = fn;
   };
   proto.connectionString = function() { return this.conStr; };
+
+  proto.close = function() {
+    var pool = pg.pools.all[JSON.stringify(this.conStr)];
+    if (!pool) return Promise.resolve(true);
+
+    delete pg.pools.all[JSON.stringify(this.conStr)];
+
+    return new Promise(function(ok) {
+      pool.drain(function() {
+        pool.destroyAllNow(ok);
+      });
+    });
+  };
 
   tproto.close = function() {
     if (this.connection && this.closeOnDone) {

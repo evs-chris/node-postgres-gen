@@ -16,9 +16,6 @@ function isEmpty(o) {
   return true;
 }
 
-// --jshint, please skip should magic
-if (should) ;
-
 function go(connect1, connect2, domain) {
   describe('Transactions', function() {
     describe('when nested', function() {
@@ -312,3 +309,59 @@ function go(connect1, connect2, domain) {
 
 describe('With domains', function() { go(function() { return mod(con1); }, function() { return mod(con2); }, true); });
 describe('Without domains', function() { go(function() { return mod(con1, { domains: false }); }, function() { return mod(con2, { domains: false }); }, false); });
+
+describe('Closing connections', function() {
+  var con = mod(con1);
+  it('should close pooled connections per instance', function(done) {
+    var result = Promise.all([
+      con.queryOne('select 1;'),
+      con.queryOne('select 2;')
+    ]);
+
+    var pool;
+
+    result.then(function() {
+      var start = +(new Date());
+
+      pool = con.pg.pools.all[JSON.stringify(con.connectionString())];
+      pool.getPoolSize().should.equal(2);
+
+      con.transaction(function*(t) {
+        var res = yield t.queryOne('select 3;');
+        yield new Promise(function(ok) {
+          setTimeout(ok, 1000);
+        });
+        return res;
+      });
+
+      return new Promise(function(ok, fail) {
+        setTimeout(function() {
+          return con.close().then(ok, fail);
+        }, 100);
+      }).then(function() {
+        (+(new Date()) - start).should.be.greaterThan(500);
+        should.equal(con.pg.pools.all[JSON.stringify(con.connectionString())], undefined);
+        pool.getPoolSize().should.equal(0);
+      });
+    }).then(done, done);
+  });
+
+  it('should close all pooled connections as a passthru', function(done) {
+    var start = +(new Date());
+
+    con.transaction(function*(t) {
+      yield t.queryOne('select 1;');
+      yield new Promise(function(ok) {
+        setTimeout(ok, 500);
+      });
+    });
+
+    return new Promise(function(ok, fail) {
+      setTimeout(function() {
+        return mod.close().then(ok, fail);
+      }, 100);
+    }).then(function() {
+      (+(new Date()) - start).should.be.greaterThan(500);
+    }).then(done, done);
+  });
+});
