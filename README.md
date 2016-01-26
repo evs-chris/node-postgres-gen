@@ -126,3 +126,24 @@ In this example, the query is turned into:
 select * from bar where name = $1 and age > $2
 ```
 and the record array is assigned to the people variable.
+
+## A note on connection pooling...
+
+By default, all connections use the underlying pooling mechanism of `node-postgres`, which gives you a 10 connection pool with a 30 second idle timeout. That fits nicely with the single-threaded event loop of node from what I've seen. This means that there is no way to immediately close a connection while pooling is enabled, because the connection will just return to the pool. That's what it's there for, after all - to eliminate the connection setup/teardown. If you want to manage connection lifecycle closely, you can disable pooling. With pooling disabled, a single query will open a connection, run the query and close the connection. The same goes for a transactions e.g. when the transaction starts, the connection is opened, and when it completes, it is closed.
+
+Starting with `0.9.0`, you can now drain and dispose the pool associated with an instance by using the new `close` method. You can also drain and dispose all of the pools by useing the new module `close` method.
+
+```js
+var pg = require('postgres-gen');
+
+pg.pg; // this is the node-postgres module used by postgres-gen
+pg.close(); // this closes all connections everywhere
+// it returns a promise that resolves when the connections are closed
+
+var con = pg({ my: 'connection details' });
+con.pg; // also the node-postgres module used by postgres-gen
+con.close(); // this closes all of the connections in this instance's connection pool (by connection string)
+// it returns a promise that resolves when the connections in this particular pool are closed
+```
+
+Obviously, if there are no connections open (no queries have been run), both of these new methods will resolve immediately - or at least as immediately as a Promise can resolve.
