@@ -156,7 +156,7 @@ function go(connect1, connect2, domain) {
         res.options.foo.should.equal(1);
       });
 
-      it('copmletely empty', function() {
+      it('completely empty', function() {
         var res = nm([]);
         res.query.should.equal('');
         should.ok(isEmpty(res.options));
@@ -199,6 +199,13 @@ function go(connect1, connect2, domain) {
         (function() { return norm(arguments); })('select ?, ?', 1, 2, obj).options.should.equal(obj);
         (function() { return norm(arguments); })('select ?, ?', [1, 2], obj).options.should.equal(obj);
       });
+      it('should handle two arrays', function() {
+        var arr1 = [1, 2, 3], arr2 = [4, 5, 6];
+        arr1.literalArray = true;
+        arr2.literalArray = 2;
+        var res = (function() { return norm(arguments); })('insert into some_table values 10, ?, ?;', [arr1, arr2]);
+        res.query.should.equal('insert into some_table values 10, ARRAY[$1, $3, $4], ARRAY[$2, $5, $6];');
+      });
     });
 
     describe('containing $alpha params', function() {
@@ -222,6 +229,14 @@ function go(connect1, connect2, domain) {
     });
 
     describe('when passed array parameters', function() {
+      it('should handle multiple long arrays without crapping out', function() {
+        var arr1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,17, 18, 19, 20], arr2 = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40];
+        arr1.literalArray = true;
+        arr2.literalArray = true;
+        var q = (function() { return norm(arguments); })('update foo, set bar = ?, baz = ?', [arr1, arr2]);
+        console.log(JSON.stringify(q));
+        q.query.should.equal('update foo, set bar = ARRAY[$1, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21], baz = ARRAY[$2, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40]');
+      });
       it('should split them into individual parameters', function() {
         var q = (function() { return norm(arguments); })('select ? in ?', [1, [1, 2, 3, 4]]);
         q.params.length.should.equal(5);

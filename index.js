@@ -130,16 +130,17 @@ var normalize = module.exports.normalizeQueryArguments = function(args) {
     var p = params[i];
     if (Array.isArray(p)) {
       var arargs = ['$' + (i + 1)];
+      var qre = new RegExp('\\$' + (i + 1) + '(?![0-9])');
       for (var j = 1; j < p.length; j++) arargs.push('$' + (j + params.length));
       if (p.literalArray) {
-        q = q.replace('$' + (i + 1), 'ARRAY[' + arargs.join(', ') + ']');
+        q = q.replace(qre, 'ARRAY[' + arargs.join(', ') + ']');
         if (p.length < 1) shifts.push(i + 1);
       } else {
         if (p.length < 1) {
-          q = q.replace('$' + (i + 1), '(select 1 where false)');
+          q = q.replace(qre, '(select 1 where false)');
           shifts.push(i + 1);
         } else {
-          q = q.replace('$' + (i + 1), '(' + arargs.join(', ') + ')');
+          q = q.replace(qre, '(' + arargs.join(', ') + ')');
         }
       }
       params.splice(i, 1, p[0]);
