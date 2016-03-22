@@ -1,3 +1,7 @@
+## 0.9.1
+
+* __BUG:__ Fix support for exploding multiple largish arrays into a query.
+
 ## 0.9.0
 
 * Adds support for closing all of the connections for a pooled instance.

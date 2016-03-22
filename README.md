@@ -75,6 +75,8 @@ select * from cars where classification in ($1, $3, $4) and id > $2;
 
 Notice that array parameter is replaced with its first element with additional elements added to the end of the param references, so that this also works nicely with named and number parameters.
 
+If you need to have an array converted into a literal `ARRAY[...]` in the query, you can add a property, `literalArray`, to the array and have it set to `true` before passing the array as a parameter.
+
 ## 6. Transactional domains
 
 Starting with 0.2.0 postgres-gen supports using domains as transactional containers. Further queries down the asynchronous 'call stack' will participate in an upstream transaction if there is one available. There is also a new method that allows you to create a separate transaction context while one is already available.
