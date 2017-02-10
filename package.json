@@ -1,6 +1,6 @@
 {
   "name": "postgres-gen",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "A wrapper for pg or pg.js that runs queries and transactions through a generator using promises.",
   "homepage": "https://github.com/evs-chris/node-postgres-gen",
   "license": "MIT",

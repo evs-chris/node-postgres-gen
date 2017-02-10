@@ -1,3 +1,8 @@
+## 0.10.0
+
+* Removes support for Node.js domains, which no longer exist.
+* URI encodes all connection string bits so that special characters won't break connections.
+
 ## 0.9.1
 
 * __BUG:__ Fix support for exploding multiple largish arrays into a query.
