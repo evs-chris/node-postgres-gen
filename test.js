@@ -16,109 +16,61 @@ function isEmpty(o) {
   return true;
 }
 
-function go(connect1, connect2, domain) {
-  describe('Transactions', function() {
-    describe('when nested', function() {
-      if (domain) {
-        it('should share the same transaction instance by default', function(done) {
-          var pg = connect1();
-          pg.transaction(function*(t1) {
-            yield pg.transaction(function*(t2) {
-              yield t1.should.equal(t2);
-            });
-          }).then(done, done);
-        });
-      }
-
-      it('should use the given transaction when supplied', function(done) {
-        var pg = connect1();
-        pg.transaction(function*(t1) {
-          yield t1.query('select 1;');
-          yield t1.transaction(function*(t2) {
-            yield t2.query('select 2');
-            t1.should.equal(t2);
-          });
-        }).then(done, done);
-      });
-
-      it('should not share the same transaction instance when requested', function(done) {
-        var pg = connect1();
-        pg.transaction(function*(t1) {
-          yield pg.newTransaction(function*(t2) {
-            yield t1.should.not.equal(t2);
-          });
-        }).then(done, done);
-      });
-
-      if (domain) {
-        it('should happen within the same begin/commit block by default', function(done) {
-          var stmts = [];
-          var pg = connect1();
-          pg.log(logger.bind(stmts));
-          pg.transaction(function*() {
-            yield pg.query('select 1;');
-            yield pg.transaction(function*() {
-              yield pg.query('select 2;');
-            });
-          }).then(function() {
-            stmts.length.should.equal(4);
-            stmts[0].query.should.match(/begin/i);
-            stmts[3].query.should.match(/commit/i);
-            done();
-          }).catch(done);
-        });
-
-        it('should use the correct db if there is more than one available', function(done) {
-          var pg = connect1();
-          var pg2 = connect2();
-          pg.transaction(function*(t1)  {
-            yield pg2.transaction(function*(t2) {
-              yield t1.should.not.equal(t2);
-              yield pg.transaction(function*(t3) {
-                yield t1.should.equal(t3);
-                yield pg2.transaction(function*(t4) {
-                  yield t2.should.equal(t4);
-                });
-              });
-            });
-          }).then(done, done);
-        });
-      }
-    });
-
-    it('should be rolled back if an error is thrown', function(done) {
-      var stmts = [];
+describe('Transactions', function() {
+  describe('when nested', function() {
+    it('should use the given transaction when supplied', function(done) {
       var pg = connect1();
-      pg.log(logger.bind(stmts));
-      pg.transaction(function*(t) {
-        var n = (yield t.queryOne('select 1::integer as num;')).num;
-        n.should.equal(1);
-        throw new Error('Nevermind');
-      }).then(done, function(e) {
-        e.message.should.eql('Nevermind');
-        stmts.length.should.equal(3);
-        stmts[0].query.should.match(/begin/i);
-        stmts[1].query.should.match(/select 1/i);
-        stmts[2].query.should.match(/rollback/i);
-        done();
-      }).catch(done);
+      pg.transaction(function*(t1) {
+        yield t1.query('select 1;');
+        yield t1.transaction(function*(t2) {
+          yield t2.query('select 2');
+          t1.should.equal(t2);
+        });
+      }).then(done, done);
     });
 
-    it('should be committed at the end if successful', function(done) {
-      var stmts = [];
+    it('should not share the same transaction instance when requested', function(done) {
       var pg = connect1();
-      pg.log(logger.bind(stmts));
-      pg.transaction(function*(t) {
-        var n = (yield t.queryOne('select 1::integer as num;')).num;
-        n.should.equal(1);
-        n = (yield t.queryOne('select 2::varchar as str;')).str;
-        n.should.equal('2');
-      }).then(function() {
-        stmts.length.should.equal(4);
-        stmts[3].query.should.match(/commit/i);
-        done();
-      }).catch(done);
+      pg.transaction(function*(t1) {
+        yield pg.newTransaction(function*(t2) {
+          t1.should.not.equal(t2);
+        });
+      }).then(done, done);
     });
+  });
+
+  it('should be rolled back if an error is thrown', function(done) {
+    var stmts = [];
+    var pg = connect1();
+    pg.log(logger.bind(stmts));
+    pg.transaction(function*(t) {
+      var n = (yield t.queryOne('select 1::integer as num;')).num;
+      n.should.equal(1);
+      throw new Error('Nevermind');
+    }).then(done, function(e) {
+      e.message.should.eql('Nevermind');
+      stmts.length.should.equal(3);
+      stmts[0].query.should.match(/begin/i);
+      stmts[1].query.should.match(/select 1/i);
+      stmts[2].query.should.match(/rollback/i);
+      done();
+    }).catch(done);
+  });
+
+  it('should be committed at the end if successful', function(done) {
+    var stmts = [];
+    var pg = connect1();
+    pg.log(logger.bind(stmts));
+    pg.transaction(function*(t) {
+      var n = (yield t.queryOne('select 1::integer as num;')).num;
+      n.should.equal(1);
+      n = (yield t.queryOne('select 2::varchar as str;')).str;
+      n.should.equal('2');
+    }).then(function() {
+      stmts.length.should.equal(4);
+      stmts[3].query.should.match(/commit/i);
+      done();
+    }).catch(done);
   });
 
   describe('Query strings', function() {
@@ -278,6 +230,14 @@ function go(connect1, connect2, domain) {
         q.query.should.equal('update foo set arr = ARRAY[] where foo = $1 and bar = $2');
         q.params.length.should.equal(2);
       });
+      it('should handle json in a literal array', function() {
+        var arr = [{ foo: 'bar' }, { baz: { bat: true } }];
+        arr.literalArray = true;
+        var q = norm(['update some_table set things = ?', [arr]]);
+        q.query.should.equal('update some_table set things = ARRAY[$1, $2]');
+        q.params[0].should.equal(arr[0]);
+        q.params[1].should.equal(arr[1]);
+      });
     });
   });
 
@@ -320,10 +280,10 @@ function go(connect1, connect2, domain) {
       q.params[1].should.equal(foo);
     });
   });
-}
+});
 
-describe('With domains', function() { go(function() { return mod(con1); }, function() { return mod(con2); }, true); });
-describe('Without domains', function() { go(function() { return mod(con1, { domains: false }); }, function() { return mod(con2, { domains: false }); }, false); });
+function connect1() { return mod(con1); }
+function connect2() { return mod(con2); }
 
 describe('Closing connections', function() {
   var con = mod(con1);

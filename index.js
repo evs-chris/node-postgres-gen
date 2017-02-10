@@ -516,14 +516,14 @@ makeDB = (function() {
       } else {
         mid.conStr = 'postgresql://';
         if (arg.user) {
-          mid.conStr += arg.user;
-          if (arg.password) mid.conStr += ':' + arg.password;
+          mid.conStr += encodeURIComponent(arg.user);
+          if (arg.password) mid.conStr += ':' + encodeURIComponent(arg.password);
           mid.conStr += '@';
         }
-        if (!!arg.host) mid.conStr += arg.host;
+        if (!!arg.host) mid.conStr += encodeURIComponent(arg.host);
         else mid.conStr += 'localhost';
         if (!!arg.port) mid.conStr += ':' + arg.port;
-        if (arg.db) mid.conStr += '/' + arg.db;
+        if (arg.db) mid.conStr += '/' + encodeURIComponent(arg.db);
         if (arg.hasOwnProperty('ssl')) mid.conStr += '?ssl=' + arg.ssl;
       }
       if (arg.hasOwnProperty('pool')) mid.pool = !!arg.pool;
@@ -532,7 +532,7 @@ makeDB = (function() {
     }
 
     res.literal = res.lit = literal;
-    res.domains = opts.domains === undefined ? true : opts.domains;
+    res.domains = false;
 
     return res;
   };
